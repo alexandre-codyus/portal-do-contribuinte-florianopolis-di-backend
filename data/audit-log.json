@@ -1,0 +1,31 @@
+[
+  {
+    "id": "0022190a-cfe7-4070-8241-3891518aff65",
+    "timestamp": "2026-03-07T12:11:16.912Z",
+    "user": {
+      "id": "u-admin",
+      "username": "admin",
+      "role": "ADMIN"
+    },
+    "action": "DELETE_CONTRIBUINTE",
+    "before": {
+      "id": "4f6c2c58-3867-4385-b5dc-15cefcc9678e",
+      "tipo": "PJ",
+      "documento": "10000000000000",
+      "natureza_juridica": "Empresario Individual",
+      "regime_tributario": "Simples Nacional",
+      "cnae_principal": "6920601",
+      "optante_simples": "false",
+      "historico_situacoes": "[{\"situacao\": \"ATIVO\", \"data\": \"2025-01-29\"}, {\"situacao\": \"REGULAR\", \"data\": \"2025-02-07\"}]",
+      "grau_risco_atual": "Medio",
+      "score_risco": "36.3",
+      "inadimplente": "false",
+      "cnae_incompativel": "false",
+      "aliquota_divergente": "false",
+      "oscilacao_suspeita": "false",
+      "created_at": "2025-01-29T10:00:00",
+      "updated_at": "2025-02-07T10:00:00"
+    },
+    "after": null
+  }
+]
