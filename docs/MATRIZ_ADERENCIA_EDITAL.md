@@ -23,6 +23,17 @@
 | Portal do Contribuinte | Parcial | `/portal/requests`, `/portal/requests/:contributorId` |
 | Modulos Especializados | Parcial (estrutura base) | `/especializados/:module/findings` |
 
+## Detalhamento por módulo funcional
+
+- [REQ_FUNC_INDICE_GERAL.md](REQ_FUNC_INDICE_GERAL.md)
+- [REQ_FUNC_PLANEJAMENTO_INTELIGENCIA.md](REQ_FUNC_PLANEJAMENTO_INTELIGENCIA.md)
+- [REQ_FUNC_FISCALIZACAO_REGULARIZACAO.md](REQ_FUNC_FISCALIZACAO_REGULARIZACAO.md)
+- [REQ_FUNC_PROCESSO_E_COMUNICACAO.md](REQ_FUNC_PROCESSO_E_COMUNICACAO.md)
+- [REQ_FUNC_AINF.md](REQ_FUNC_AINF.md)
+- [REQ_FUNC_DTE.md](REQ_FUNC_DTE.md)
+- [REQ_FUNC_PORTAL_CONTRIBUINTE.md](REQ_FUNC_PORTAL_CONTRIBUINTE.md)
+- [REQ_FUNC_MODULOS_ESPECIALIZADOS.md](REQ_FUNC_MODULOS_ESPECIALIZADOS.md)
+
 ## Modulos Especializados Cobertos por Estrutura
 
 - `desif`
