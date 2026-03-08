@@ -1,38 +1,44 @@
-const fs = require("node:fs/promises");
-const path = require("node:path");
 const { randomUUID } = require("node:crypto");
-
-const auditFilePath = path.resolve(__dirname, "../../data/audit-log.json");
-
-async function ensureAuditFile() {
-  try {
-    await fs.access(auditFilePath);
-  } catch {
-    await fs.writeFile(auditFilePath, "[]\n", "utf-8");
-  }
-}
+const { getDb } = require("../db");
 
 async function appendLog({ user, action, before = null, after = null }) {
-  await ensureAuditFile();
-  const raw = await fs.readFile(auditFilePath, "utf-8");
-  const logs = JSON.parse(raw);
-
-  logs.push({
-    id: randomUUID(),
-    timestamp: new Date().toISOString(),
-    user: {
-      id: user?.sub,
-      username: user?.username,
-      role: user?.role
-    },
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO audit_logs (id, timestamp, user_id, username, role, action, before_json, after_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    randomUUID(),
+    new Date().toISOString(),
+    user?.sub || null,
+    user?.username || null,
+    user?.role || null,
     action,
-    before,
-    after
-  });
+    before ? JSON.stringify(before) : null,
+    after ? JSON.stringify(after) : null
+  );
+}
 
-  await fs.writeFile(auditFilePath, `${JSON.stringify(logs, null, 2)}\n`, "utf-8");
+async function listLogs({ limit = 100 } = {}) {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?")
+    .all(limit);
+
+  return rows.map((row) => ({
+    id: row.id,
+    timestamp: row.timestamp,
+    user: {
+      id: row.user_id,
+      username: row.username,
+      role: row.role
+    },
+    action: row.action,
+    before: row.before_json ? JSON.parse(row.before_json) : null,
+    after: row.after_json ? JSON.parse(row.after_json) : null
+  }));
 }
 
 module.exports = {
-  appendLog
+  appendLog,
+  listLogs
 };

@@ -1,15 +1,47 @@
 const permissionsByRole = {
   ADMIN: {
-    contributors: ["read", "create", "update", "delete"]
+    contributors: ["read", "create", "update", "delete"],
+    analytics: ["read", "create"],
+    fiscalizacao: ["read", "create", "update"],
+    regularizacao: ["read", "create", "update"],
+    processos: ["read", "create", "update"],
+    ainf: ["read", "create"],
+    dte: ["read", "create", "ack"],
+    portal: ["read", "create"],
+    especializados: ["read", "create"]
   },
   GESTOR: {
-    contributors: ["read", "create", "update"]
+    contributors: ["read", "create", "update"],
+    analytics: ["read", "create"],
+    fiscalizacao: ["read", "create", "update"],
+    regularizacao: ["read", "create", "update"],
+    processos: ["read", "create", "update"],
+    ainf: ["read", "create"],
+    dte: ["read", "create", "ack"],
+    portal: ["read", "create"],
+    especializados: ["read", "create"]
   },
   AUDITOR: {
-    contributors: ["read", "update"]
+    contributors: ["read", "update"],
+    analytics: ["read", "create"],
+    fiscalizacao: ["read", "create", "update"],
+    regularizacao: ["read", "create", "update"],
+    processos: ["read", "create", "update"],
+    ainf: ["read", "create"],
+    dte: ["read", "ack"],
+    portal: ["read"],
+    especializados: ["read", "create"]
   },
   LEITOR: {
-    contributors: ["read"]
+    contributors: ["read"],
+    analytics: ["read"],
+    fiscalizacao: ["read"],
+    regularizacao: ["read"],
+    processos: ["read"],
+    ainf: ["read"],
+    dte: ["read"],
+    portal: ["read"],
+    especializados: ["read"]
   }
 };
 

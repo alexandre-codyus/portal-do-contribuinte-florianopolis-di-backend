@@ -1,10 +1,12 @@
 const contributorsService = require("../services/contributorsService");
 const auditService = require("../services/auditService");
+const { validateCreatePayload, validatePagination } = require("../validators/contributorsValidator");
 
 async function list(req, res) {
   const page = Number(req.query.page || 1);
   const pageSize = Number(req.query.pageSize || 20);
   const q = req.query.q || "";
+  validatePagination(page, pageSize);
 
   const result = await contributorsService.list({ page, pageSize, q });
   return res.json(result);
@@ -19,6 +21,7 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
+  validateCreatePayload(req.body);
   const created = await contributorsService.create(req.body);
   await auditService.appendLog({
     user: req.user,
@@ -29,6 +32,7 @@ async function create(req, res) {
 }
 
 async function update(req, res) {
+  validateCreatePayload(req.body);
   const before = await contributorsService.getById(req.params.id);
   if (!before) {
     return res.status(404).json({ message: "Contribuinte nao encontrado." });

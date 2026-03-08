@@ -2,7 +2,10 @@ const jwt = require("jsonwebtoken");
 const { USERS } = require("../config/users");
 
 function getJwtSecret() {
-  return process.env.JWT_SECRET || "dev-secret";
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET nao configurado no ambiente.");
+  }
+  return process.env.JWT_SECRET;
 }
 
 function login(username, password) {
