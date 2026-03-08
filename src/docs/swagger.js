@@ -527,8 +527,49 @@ const swaggerDefinition = {
         tags: ["Fiscalizacao"],
         summary: "Abre caso de fiscalizacao",
         security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              example: {
+                contributorId: "uuid-do-contribuinte",
+                regimeType: "SIMPLES_NACIONAL",
+                priority: 85,
+                notes: "Iniciado por regra de risco"
+              }
+            }
+          }
+        },
         responses: {
           201: { description: "Caso criado" }
+        }
+      }
+    },
+    "/fiscalizacao/cases/{caseId}/status": {
+      patch: {
+        tags: ["Fiscalizacao"],
+        summary: "Atualiza status do caso de fiscalizacao",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "caseId",
+            in: "path",
+            required: true,
+            schema: { type: "string" }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              example: { status: "EM_ANALISE" }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Status atualizado" },
+          409: { description: "Transicao de status invalida" },
+          429: { description: "Rate limit excedido" }
         }
       }
     },
@@ -550,6 +591,34 @@ const swaggerDefinition = {
         }
       }
     },
+    "/regularizacao/actions/{actionId}/status": {
+      patch: {
+        tags: ["Fiscalizacao"],
+        summary: "Atualiza status da acao de regularizacao",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "actionId",
+            in: "path",
+            required: true,
+            schema: { type: "string" }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              example: { status: "CONCLUIDA", resultNotes: "Contribuinte regularizou pendencias" }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Status atualizado" },
+          409: { description: "Transicao de status invalida" },
+          429: { description: "Rate limit excedido" }
+        }
+      }
+    },
     "/processos": {
       get: {
         tags: ["Processos"],
@@ -568,6 +637,52 @@ const swaggerDefinition = {
         }
       }
     },
+    "/processos/{processId}/status": {
+      patch: {
+        tags: ["Processos"],
+        summary: "Atualiza status do processo fiscal",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "processId",
+            in: "path",
+            required: true,
+            schema: { type: "string" }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              example: { status: "AGUARDANDO_CIENCIA" }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Status atualizado" },
+          409: { description: "Transicao de status invalida" },
+          429: { description: "Rate limit excedido" }
+        }
+      }
+    },
+    "/comunicacoes/{processId}": {
+      get: {
+        tags: ["Processos"],
+        summary: "Lista comunicacoes vinculadas ao processo",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "processId",
+            in: "path",
+            required: true,
+            schema: { type: "string" }
+          }
+        ],
+        responses: {
+          200: { description: "Comunicacoes listadas" }
+        }
+      }
+    },
     "/ainf": {
       get: {
         tags: ["AINF"],
@@ -583,6 +698,34 @@ const swaggerDefinition = {
         security: [{ bearerAuth: [] }],
         responses: {
           201: { description: "AINF criado" }
+        }
+      }
+    },
+    "/ainf/{ainfId}/status": {
+      patch: {
+        tags: ["AINF"],
+        summary: "Atualiza status do AINF",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "ainfId",
+            in: "path",
+            required: true,
+            schema: { type: "string" }
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              example: { status: "NOTIFICADO" }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Status atualizado" },
+          409: { description: "Transicao de status invalida" },
+          429: { description: "Rate limit excedido" }
         }
       }
     },

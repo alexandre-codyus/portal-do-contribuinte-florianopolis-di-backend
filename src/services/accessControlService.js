@@ -5,7 +5,7 @@ const permissionsByRole = {
     fiscalizacao: ["read", "create", "update"],
     regularizacao: ["read", "create", "update"],
     processos: ["read", "create", "update"],
-    ainf: ["read", "create"],
+    ainf: ["read", "create", "update"],
     dte: ["read", "create", "ack"],
     portal: ["read", "create"],
     especializados: ["read", "create"]
@@ -16,7 +16,7 @@ const permissionsByRole = {
     fiscalizacao: ["read", "create", "update"],
     regularizacao: ["read", "create", "update"],
     processos: ["read", "create", "update"],
-    ainf: ["read", "create"],
+    ainf: ["read", "create", "update"],
     dte: ["read", "create", "ack"],
     portal: ["read", "create"],
     especializados: ["read", "create"]
@@ -27,7 +27,7 @@ const permissionsByRole = {
     fiscalizacao: ["read", "create", "update"],
     regularizacao: ["read", "create", "update"],
     processos: ["read", "create", "update"],
-    ainf: ["read", "create"],
+    ainf: ["read", "create", "update"],
     dte: ["read", "ack"],
     portal: ["read"],
     especializados: ["read", "create"]

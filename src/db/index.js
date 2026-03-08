@@ -57,6 +57,9 @@ function migrateSchema(database) {
       username TEXT,
       role TEXT,
       action TEXT NOT NULL,
+      request_id TEXT,
+      route TEXT,
+      method TEXT,
       before_json TEXT,
       after_json TEXT
     );
@@ -208,6 +211,19 @@ function migrateSchema(database) {
       FOREIGN KEY (contributor_id) REFERENCES contributors(id) ON DELETE SET NULL
     );
   `);
+
+  // Backward-compatible columns when database already exists.
+  const ensureColumn = (table, column, type) => {
+    const rows = database.prepare(`PRAGMA table_info(${table})`).all();
+    const exists = rows.some((row) => row.name === column);
+    if (!exists) {
+      database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  };
+
+  ensureColumn("audit_logs", "request_id", "TEXT");
+  ensureColumn("audit_logs", "route", "TEXT");
+  ensureColumn("audit_logs", "method", "TEXT");
 }
 
 function seedFromLegacyFiles(database) {
@@ -258,8 +274,8 @@ function seedFromLegacyFiles(database) {
   if (tableIsEmpty(database, "audit_logs")) {
     const logs = loadJsonFile(auditFilePath);
     const stmt = database.prepare(`
-      INSERT INTO audit_logs (id, timestamp, user_id, username, role, action, before_json, after_json)
-      VALUES (@id, @timestamp, @user_id, @username, @role, @action, @before_json, @after_json)
+      INSERT INTO audit_logs (id, timestamp, user_id, username, role, action, request_id, route, method, before_json, after_json)
+      VALUES (@id, @timestamp, @user_id, @username, @role, @action, @request_id, @route, @method, @before_json, @after_json)
     `);
 
     const insertMany = database.transaction((rows) => {
@@ -271,6 +287,9 @@ function seedFromLegacyFiles(database) {
           username: row.user?.username || null,
           role: row.user?.role || null,
           action: row.action || "UNKNOWN",
+          request_id: row.requestId || null,
+          route: row.route || null,
+          method: row.method || null,
           before_json: row.before ? JSON.stringify(row.before) : null,
           after_json: row.after ? JSON.stringify(row.after) : null
         });

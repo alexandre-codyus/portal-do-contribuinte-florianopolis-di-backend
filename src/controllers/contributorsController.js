@@ -26,7 +26,8 @@ async function create(req, res) {
   await auditService.appendLog({
     user: req.user,
     action: "CREATE_CONTRIBUINTE",
-    after: created
+    after: created,
+    requestMeta: { requestId: req.requestId, route: req.originalUrl, method: req.method }
   });
   return res.status(201).json(created);
 }
@@ -43,7 +44,8 @@ async function update(req, res) {
     user: req.user,
     action: "UPDATE_CONTRIBUINTE",
     before,
-    after: updated
+    after: updated,
+    requestMeta: { requestId: req.requestId, route: req.originalUrl, method: req.method }
   });
 
   return res.json(updated);
@@ -63,7 +65,8 @@ async function remove(req, res) {
   await auditService.appendLog({
     user: req.user,
     action: "DELETE_CONTRIBUINTE",
-    before
+    before,
+    requestMeta: { requestId: req.requestId, route: req.originalUrl, method: req.method }
   });
 
   return res.status(204).send();

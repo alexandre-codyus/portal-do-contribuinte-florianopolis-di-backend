@@ -9,6 +9,8 @@ let token;
 let contributorId;
 let processId;
 let dteMessageId;
+let fiscalCaseId;
+let ainfId;
 
 test("healthcheck deve responder 200", async () => {
   const res = await request(app).get("/api/health");
@@ -65,6 +67,7 @@ test("deve criar contribuinte e abrir processo fiscal", async () => {
     });
 
   assert.equal(createdCase.statusCode, 201);
+  fiscalCaseId = createdCase.body.id;
 
   const createdProcess = await request(app)
     .post("/api/processos")
@@ -99,6 +102,7 @@ test("deve executar analytics e criar AINF", async () => {
     });
   assert.equal(ainfRes.statusCode, 201);
   assert.equal(ainfRes.body.totalAmount, 1200);
+  ainfId = ainfRes.body.id;
 });
 
 test("deve enviar DTE e abrir solicitacao portal", async () => {
@@ -129,4 +133,64 @@ test("deve enviar DTE e abrir solicitacao portal", async () => {
       description: "Solicito parcelamento do debito."
     });
   assert.equal(portalRes.statusCode, 201);
+});
+
+test("deve atualizar status de caso e processo", async () => {
+  const caseStatusRes = await request(app)
+    .patch(`/api/fiscalizacao/cases/${fiscalCaseId}/status`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ status: "EM_ANALISE" });
+  assert.equal(caseStatusRes.statusCode, 200);
+  assert.equal(caseStatusRes.body.status, "EM_ANALISE");
+
+  const processStatusRes = await request(app)
+    .patch(`/api/processos/${processId}/status`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ status: "AGUARDANDO_CIENCIA" });
+  assert.equal(processStatusRes.statusCode, 200);
+  assert.equal(processStatusRes.body.status, "AGUARDANDO_CIENCIA");
+});
+
+test("deve listar comunicacoes por processo", async () => {
+  const res = await request(app)
+    .get(`/api/comunicacoes/${processId}`)
+    .set("Authorization", `Bearer ${token}`);
+  assert.equal(res.statusCode, 200);
+  assert.ok(Array.isArray(res.body));
+});
+
+test("deve atualizar status de AINF", async () => {
+  const res = await request(app)
+    .patch(`/api/ainf/${ainfId}/status`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ status: "NOTIFICADO" });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.status, "NOTIFICADO");
+});
+
+test("deve rejeitar AINF sem processo valido", async () => {
+  const res = await request(app)
+    .post("/api/ainf")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      contributorId,
+      periodRef: "2026-02",
+      taxAmount: 500,
+      penaltyAmount: 100
+    });
+  assert.equal(res.statusCode, 400);
+});
+
+test("deve rejeitar transicao invalida de status de processo", async () => {
+  const conclude = await request(app)
+    .patch(`/api/processos/${processId}/status`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ status: "CONCLUIDO" });
+  assert.equal(conclude.statusCode, 200);
+
+  const invalid = await request(app)
+    .patch(`/api/processos/${processId}/status`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ status: "EM_ANDAMENTO" });
+  assert.equal(invalid.statusCode, 409);
 });

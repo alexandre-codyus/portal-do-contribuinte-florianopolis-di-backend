@@ -183,6 +183,31 @@ function createFiscalCase({ contributorId, regimeType, priority, notes, originIn
   };
 }
 
+function getFiscalCaseById(fiscalCaseId) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM fiscal_cases WHERE id = ?").get(fiscalCaseId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    contributorId: row.contributor_id,
+    regimeType: row.regime_type,
+    status: row.status,
+    priority: row.priority,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function updateFiscalCaseStatus(fiscalCaseId, status) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const result = db
+    .prepare("UPDATE fiscal_cases SET status = ?, updated_at = ? WHERE id = ?")
+    .run(status, now, fiscalCaseId);
+  return result.changes > 0;
+}
+
 function createRegularization({ fiscalCaseId, contributorId, guidance }) {
   const db = getDb();
   const now = new Date().toISOString();
@@ -214,6 +239,31 @@ function createRegularization({ fiscalCaseId, contributorId, guidance }) {
     createdAt: record.created_at,
     updatedAt: record.updated_at
   };
+}
+
+function getRegularizationById(actionId) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM regularization_actions WHERE id = ?").get(actionId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    fiscalCaseId: row.fiscal_case_id,
+    contributorId: row.contributor_id,
+    status: row.status,
+    guidance: row.guidance,
+    resultNotes: row.result_notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function updateRegularizationStatus(actionId, status, resultNotes) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const result = db
+    .prepare("UPDATE regularization_actions SET status = ?, result_notes = ?, updated_at = ? WHERE id = ?")
+    .run(status, resultNotes || null, now, actionId);
+  return result.changes > 0;
 }
 
 function listRegularizationActions() {
@@ -268,6 +318,31 @@ function createFiscalProcess({ fiscalCaseId, title, stage, dueDate }) {
     dueDate: record.due_date,
     createdAt: record.created_at
   };
+}
+
+function getFiscalProcessById(processId) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM fiscal_processes WHERE id = ?").get(processId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    fiscalCaseId: row.fiscal_case_id,
+    title: row.title,
+    status: row.status,
+    currentStage: row.current_stage,
+    dueDate: row.due_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function updateProcessStatus(processId, status) {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const result = db
+    .prepare("UPDATE fiscal_processes SET status = ?, updated_at = ? WHERE id = ?")
+    .run(status, now, processId);
+  return result.changes > 0;
 }
 
 function listFiscalProcesses() {
@@ -359,6 +434,24 @@ function createCommunication({ processId, contributorId, channel, subject, conte
   };
 }
 
+function listCommunicationsByProcess(processId) {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT * FROM communications WHERE process_id = ? ORDER BY sent_at DESC")
+    .all(processId);
+  return rows.map((row) => ({
+    id: row.id,
+    processId: row.process_id,
+    contributorId: row.contributor_id,
+    channel: row.channel,
+    subject: row.subject,
+    content: row.content,
+    status: row.status,
+    sentAt: row.sent_at,
+    readAt: row.read_at
+  }));
+}
+
 function createAinfRecord(payload) {
   const db = getDb();
   const record = {
@@ -397,6 +490,33 @@ function createAinfRecord(payload) {
     status: record.status,
     createdAt: record.created_at
   };
+}
+
+function getAinfById(ainfId) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM ainf_records WHERE id = ?").get(ainfId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    processId: row.process_id,
+    fiscalCaseId: row.fiscal_case_id,
+    contributorId: row.contributor_id,
+    periodRef: row.period_ref,
+    taxAmount: row.tax_amount,
+    penaltyAmount: row.penalty_amount,
+    totalAmount: row.total_amount,
+    legalBasis: row.legal_basis,
+    status: row.status,
+    createdAt: row.created_at
+  };
+}
+
+function updateAinfStatus(ainfId, status) {
+  const db = getDb();
+  const result = db
+    .prepare("UPDATE ainf_records SET status = ? WHERE id = ?")
+    .run(status, ainfId);
+  return result.changes > 0;
 }
 
 function listAinfRecords() {
@@ -469,6 +589,22 @@ function createDteMessage({ contributorId, processId, subject, content }) {
     content: record.content,
     status: record.status,
     sentAt: record.sent_at
+  };
+}
+
+function getDteMessageById(messageId) {
+  const db = getDb();
+  const row = db.prepare("SELECT * FROM dte_messages WHERE id = ?").get(messageId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    contributorId: row.contributor_id,
+    processId: row.process_id,
+    subject: row.subject,
+    content: row.content,
+    status: row.status,
+    sentAt: row.sent_at,
+    scienceAt: row.science_at
   };
 }
 
@@ -609,6 +745,18 @@ function contributorExists(contributorId) {
   return Boolean(row);
 }
 
+function fiscalCaseExists(fiscalCaseId) {
+  const db = getDb();
+  const row = db.prepare("SELECT id FROM fiscal_cases WHERE id = ?").get(fiscalCaseId);
+  return Boolean(row);
+}
+
+function processExists(processId) {
+  const db = getDb();
+  const row = db.prepare("SELECT id FROM fiscal_processes WHERE id = ?").get(processId);
+  return Boolean(row);
+}
+
 module.exports = {
   createAnalyticsImport,
   replaceRiskIndicators,
@@ -616,22 +764,34 @@ module.exports = {
   getRiskDashboard,
   listPriorities,
   createFiscalCase,
+  getFiscalCaseById,
+  updateFiscalCaseStatus,
   createRegularization,
+  getRegularizationById,
+  updateRegularizationStatus,
   listRegularizationActions,
   createFiscalProcess,
+  getFiscalProcessById,
+  updateProcessStatus,
   listFiscalProcesses,
   addProcessEvent,
   listProcessEvents,
   createCommunication,
+  listCommunicationsByProcess,
   createAinfRecord,
+  getAinfById,
+  updateAinfStatus,
   listAinfRecords,
   createDelegation,
   createDteMessage,
+  getDteMessageById,
   acknowledgeDteMessage,
   listDteMessagesByContributor,
   createPortalRequest,
   listPortalRequestsByContributor,
   createSpecializedFinding,
   listSpecializedFindings,
-  contributorExists
+  contributorExists,
+  fiscalCaseExists,
+  processExists
 };

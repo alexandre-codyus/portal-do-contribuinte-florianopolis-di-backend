@@ -2,11 +2,52 @@ const contributorsRepository = require("../repositories/contributorsRepository")
 const platformRepository = require("../repositories/platformRepository");
 const { AppError } = require("../errors/AppError");
 
+const fiscalCaseTransitions = {
+  ABERTO: ["EM_ANALISE", "ENCERRADO"],
+  EM_ANALISE: ["EM_REGULARIZACAO", "ENCERRADO"],
+  EM_REGULARIZACAO: ["ENCERRADO"],
+  ENCERRADO: []
+};
+
+const regularizationTransitions = {
+  PENDENTE: ["EM_TRATAMENTO", "CONCLUIDA", "NAO_ADERIDA"],
+  EM_TRATAMENTO: ["CONCLUIDA", "NAO_ADERIDA"],
+  CONCLUIDA: [],
+  NAO_ADERIDA: []
+};
+
+const processTransitions = {
+  EM_ANDAMENTO: ["AGUARDANDO_CIENCIA", "CONCLUIDO", "CANCELADO"],
+  AGUARDANDO_CIENCIA: ["EM_ANDAMENTO", "CONCLUIDO", "CANCELADO"],
+  CONCLUIDO: [],
+  CANCELADO: []
+};
+
+const ainfTransitions = {
+  LAVRADO: ["NOTIFICADO", "CANCELADO"],
+  NOTIFICADO: ["PAGO", "IMPUGNADO", "CANCELADO"],
+  IMPUGNADO: ["MANTIDO", "CANCELADO"],
+  PAGO: [],
+  MANTIDO: [],
+  CANCELADO: []
+};
+
 function severityFromScore(score) {
   if (score >= 85) return "CRITICA";
   if (score >= 70) return "ALTA";
   if (score >= 45) return "MEDIA";
   return "BAIXA";
+}
+
+function ensureTransition(entity, currentStatus, nextStatus, map) {
+  const allowed = map[currentStatus] || [];
+  if (!allowed.includes(nextStatus)) {
+    throw new AppError(`Transicao invalida para ${entity}: ${currentStatus} -> ${nextStatus}.`, 409, {
+      currentStatus,
+      nextStatus,
+      allowed
+    });
+  }
 }
 
 function buildIndicatorRules(contributor) {
@@ -95,11 +136,34 @@ function createFiscalCase(payload) {
   return platformRepository.createFiscalCase(payload);
 }
 
+function updateFiscalCaseStatus(fiscalCaseId, nextStatus) {
+  const current = platformRepository.getFiscalCaseById(fiscalCaseId);
+  if (!current) {
+    throw new AppError("Caso de fiscalizacao nao encontrado.", 404);
+  }
+  ensureTransition("fiscal_case", current.status, nextStatus, fiscalCaseTransitions);
+  platformRepository.updateFiscalCaseStatus(fiscalCaseId, nextStatus);
+  return platformRepository.getFiscalCaseById(fiscalCaseId);
+}
+
 function createRegularization(payload) {
   if (!platformRepository.contributorExists(payload.contributorId)) {
     throw new AppError("Contribuinte nao encontrado para regularizacao.", 404);
   }
+  if (payload.fiscalCaseId && !platformRepository.fiscalCaseExists(payload.fiscalCaseId)) {
+    throw new AppError("Caso fiscal nao encontrado para regularizacao.", 404);
+  }
   return platformRepository.createRegularization(payload);
+}
+
+function updateRegularizationStatus(actionId, nextStatus, resultNotes) {
+  const current = platformRepository.getRegularizationById(actionId);
+  if (!current) {
+    throw new AppError("Acao de regularizacao nao encontrada.", 404);
+  }
+  ensureTransition("regularization", current.status, nextStatus, regularizationTransitions);
+  platformRepository.updateRegularizationStatus(actionId, nextStatus, resultNotes);
+  return platformRepository.getRegularizationById(actionId);
 }
 
 function listRegularization() {
@@ -107,6 +171,9 @@ function listRegularization() {
 }
 
 function createProcess(payload, user) {
+  if (payload.fiscalCaseId && !platformRepository.fiscalCaseExists(payload.fiscalCaseId)) {
+    throw new AppError("Caso fiscal nao encontrado para criar processo.", 404);
+  }
   const created = platformRepository.createFiscalProcess(payload);
   platformRepository.addProcessEvent({
     processId: created.id,
@@ -118,11 +185,31 @@ function createProcess(payload, user) {
   return created;
 }
 
+function updateProcessStatus(processId, nextStatus, user) {
+  const current = platformRepository.getFiscalProcessById(processId);
+  if (!current) {
+    throw new AppError("Processo fiscal nao encontrado.", 404);
+  }
+  ensureTransition("fiscal_process", current.status, nextStatus, processTransitions);
+  platformRepository.updateProcessStatus(processId, nextStatus);
+  platformRepository.addProcessEvent({
+    processId,
+    type: "STATUS_PROCESSO_ATUALIZADO",
+    description: `Status atualizado para ${nextStatus}`,
+    actorUsername: user?.username || "sistema",
+    payload: { previousStatus: current.status, nextStatus }
+  });
+  return platformRepository.getFiscalProcessById(processId);
+}
+
 function listProcesses() {
   return platformRepository.listFiscalProcesses();
 }
 
 function addProcessEvent(processId, payload, user) {
+  if (!platformRepository.processExists(processId)) {
+    throw new AppError("Processo fiscal nao encontrado para registrar evento.", 404);
+  }
   return platformRepository.addProcessEvent({
     processId,
     type: payload.type || "ATUALIZACAO",
@@ -137,6 +224,9 @@ function listProcessEvents(processId) {
 }
 
 function sendCommunication(payload, user) {
+  if (!payload.processId || !platformRepository.processExists(payload.processId)) {
+    throw new AppError("Processo fiscal valido e obrigatorio para comunicacao.", 400);
+  }
   const communication = platformRepository.createCommunication(payload);
   if (payload.processId) {
     platformRepository.addProcessEvent({
@@ -153,7 +243,17 @@ function sendCommunication(payload, user) {
   return communication;
 }
 
+function listProcessCommunications(processId) {
+  if (!platformRepository.processExists(processId)) {
+    throw new AppError("Processo fiscal nao encontrado para listagem de comunicacoes.", 404);
+  }
+  return platformRepository.listCommunicationsByProcess(processId);
+}
+
 function createAinf(payload, user) {
+  if (!payload.processId || !platformRepository.processExists(payload.processId)) {
+    throw new AppError("AINF exige processo fiscal valido.", 400);
+  }
   if (!platformRepository.contributorExists(payload.contributorId)) {
     throw new AppError("Contribuinte nao encontrado para AINF.", 404);
   }
@@ -178,6 +278,25 @@ function createAinf(payload, user) {
   }
 
   return created;
+}
+
+function updateAinfStatus(ainfId, nextStatus, user) {
+  const current = platformRepository.getAinfById(ainfId);
+  if (!current) {
+    throw new AppError("AINF nao encontrado.", 404);
+  }
+  ensureTransition("ainf", current.status, nextStatus, ainfTransitions);
+  platformRepository.updateAinfStatus(ainfId, nextStatus);
+  if (current.processId) {
+    platformRepository.addProcessEvent({
+      processId: current.processId,
+      type: "STATUS_AINF_ATUALIZADO",
+      description: `AINF ${ainfId} atualizado para ${nextStatus}`,
+      actorUsername: user?.username || "sistema",
+      payload: { previousStatus: current.status, nextStatus }
+    });
+  }
+  return platformRepository.getAinfById(ainfId);
 }
 
 function listAinf() {
@@ -207,6 +326,15 @@ function sendDteMessage(payload, user) {
 }
 
 function acknowledgeDteMessage(messageId) {
+  const message = platformRepository.getDteMessageById(messageId);
+  if (!message) {
+    throw new AppError("Mensagem DTE nao encontrada.", 404);
+  }
+  if (message.status !== "ENVIADA") {
+    throw new AppError("Apenas mensagens ENVIADAS podem receber ciencia.", 409, {
+      currentStatus: message.status
+    });
+  }
   const changed = platformRepository.acknowledgeDteMessage(messageId);
   if (!changed) {
     throw new AppError("Mensagem DTE nao encontrada.", 404);
@@ -248,14 +376,19 @@ module.exports = {
   getDashboard,
   listPriorities,
   createFiscalCase,
+  updateFiscalCaseStatus,
   createRegularization,
+  updateRegularizationStatus,
   listRegularization,
   createProcess,
+  updateProcessStatus,
   listProcesses,
   addProcessEvent,
   listProcessEvents,
   sendCommunication,
+  listProcessCommunications,
   createAinf,
+  updateAinfStatus,
   listAinf,
   createDelegation,
   sendDteMessage,
